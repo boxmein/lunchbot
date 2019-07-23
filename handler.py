@@ -1,6 +1,7 @@
 import json
 from html.parser import HTMLParser
 import http.client
+from urllib.parse import parse_qs
 
 DOMAIN = 'xn--pevapakkumised-5hb.ee'
 URL_BASE = '/'
@@ -94,26 +95,24 @@ def get_lunch_offers(city):
     url = get_location_for_city(city)
     return streaming_download_and_parse_offers(url)
 
-def hello(event, context):
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
-    }
+def format_lunch_offers(lunch_offers):
+    message = "Lunch offers for you today!\n"
+    for (index, (venue, offers)) in enumerate(lunch_offers.items()):
+        message += "{}: {}\n".format(venue, offers[0])
+    return message
 
-    get_lunch_offers('tartu')
+def slack(event, context):
+    print(event, context)
+
+    query = parse_qs(event.body)
+    print(query)
+
+    offers = get_lunch_offers('tartu')
+    response = format_lunch_offers(lunch_offers)
 
     response = {
         "statusCode": 200,
-        "body": json.dumps(body)
+        "body": message
     }
 
     return response
-
-    # Use this code if you don't use the http event with the LAMBDA-PROXY
-    # integration
-    """
-    return {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "event": event
-    }
-    """
