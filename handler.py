@@ -2,8 +2,9 @@ import json
 from html.parser import HTMLParser
 import http.client
 from urllib.parse import parse_qs
+import ssl
 
-DOMAIN = 'xn--pevapakkumised-5hb.ee'
+DOMAIN = 'päevapakkumised.ee'
 URL_BASE = '/'
 
 def get_location_for_city(city):
@@ -58,13 +59,13 @@ class LunchHTMLParser(HTMLParser):
 
     def handle_data(self, data):
         if self.state == 'parsing_venue_name' and data.strip() != '':
-            print("Found venue name: ", data.strip())
+            # print("Found venue name: ", data.strip())
             self._set_state('idle')
             self.current_venue = data.strip()
             if self.current_venue not in self.venue_offers:
                 self.venue_offers[self.current_venue] = []
         elif self.state == 'parsing_lunch_offer' and data.strip() != '':
-            print("Found lunch offer: ", data.strip())
+            # print("Found lunch offer: ", data.strip())
             self.venue_offers[self.current_venue].append(data.strip())
 
     #def handle_endtag(self, tag):
@@ -72,7 +73,7 @@ class LunchHTMLParser(HTMLParser):
 
 def streaming_download_and_parse_offers(url):
     parser = LunchHTMLParser()
-    conn = http.client.HTTPSConnection(DOMAIN)
+    conn = http.client.HTTPSConnection(DOMAIN, check_hostname=False, context=ssl._create_unverified_context())
     headers = { 'Connection': 'close' }
     conn.request('GET', url, None, headers)
     response = conn.getresponse()
@@ -87,9 +88,7 @@ def streaming_download_and_parse_offers(url):
             break
         parser.feed(res_data)
 
-    print(parser.venue_offers)
-
-    return {}
+    return parser.venue_offers
 
 def get_lunch_offers(city):
     url = get_location_for_city(city)
@@ -102,13 +101,10 @@ def format_lunch_offers(lunch_offers):
     return message
 
 def slack(event, context):
-    print(event, context)
-
-    query = parse_qs(event.body)
-    print(query)
+    query = parse_qs(event['body'])
 
     offers = get_lunch_offers('tartu')
-    response = format_lunch_offers(lunch_offers)
+    message = format_lunch_offers(offers)
 
     response = {
         "statusCode": 200,
