@@ -6,6 +6,9 @@ import ssl
 
 DOMAIN = 'päevapakkumised.ee'
 URL_BASE = '/'
+DEFAULT_VENUES = ['rp9', 'göök']
+
+cache = {}
 
 def get_location_for_city(city):
     if city in ['tallinn', 'tartu']:
@@ -90,21 +93,59 @@ def streaming_download_and_parse_offers(url):
 
     return parser.venue_offers
 
+# Downloads and parses the lunch offers for a given city.
 def get_lunch_offers(city):
-    url = get_location_for_city(city)
-    return streaming_download_and_parse_offers(url)
+    if city not in cache:
+        url = get_location_for_city(city)
+        offers = streaming_download_and_parse_offers(url)
+        cache[city] = offers
+    return cache[city]
 
-def format_lunch_offers(lunch_offers):
+
+
+# Builds a string out of the lunch offers.
+def format_lunch_offers(lunch_offers, venues_filter=None):
+    if lunch_offers is None:
+        return "No lunch offers available :("
+
     message = "Lunch offers for you today!\n"
-    for (index, (venue, offers)) in enumerate(lunch_offers.items()):
-        message += "{}: {}\n".format(venue, offers[0])
+
+    all_offers = lunch_offers.items()
+    for (index, (venue, offers)) in enumerate(all_offers):
+        if venues_filter is not None:
+            print("Applying filter:", venues_filter, venue)
+            venue_pat = venue.lower()
+            keep_venue = False
+            for filt in venues_filter:
+                if filt in venue_pat:
+                    keep_venue = True
+            if not keep_venue:
+                continue
+
+        if index > 5:
+            break
+        message += "*{}*: {}\n".format(venue, offers[0])
     return message
 
+# Slack Slash Command handler
 def slack(event, context):
-    query = parse_qs(event['body'])
+    query = None
 
-    offers = get_lunch_offers('tartu')
-    message = format_lunch_offers(offers)
+    if 'body' in event:
+        query = parse_qs(event['body'])
+
+    venue_filter = []
+    city = 'tartu'
+
+    if 'queryStringParameters' in event:
+        query = event['queryStringParameters']
+        if 'venues' in query:
+            venue_filter = query['venues'][0:512].split(',')
+        if 'city' in query and query['city'] in ['tallinn', 'tartu']:
+            city = query['city']
+
+    offers = get_lunch_offers(city)
+    message = format_lunch_offers(offers, venue_filter)
 
     response = {
         "statusCode": 200,
