@@ -1,3 +1,5 @@
+org: wsdf294
+app: lunchbot-app
 # Welcome to Serverless!
 #
 # This file is the main config file for your service.
@@ -55,7 +57,7 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-  hello:
+  lunchbot:
     handler: handler.slack
     events:
       - http: 
