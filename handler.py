@@ -101,6 +101,19 @@ def get_lunch_offers(city):
         cache[city] = offers
     return cache[city]
 
+def should_show_venue(venue, venues_filter):
+    if venue is None:
+        return False
+    if venues_filter is None or len(venues_filter) == 0:
+        return True
+    venue = venue.lower()
+    for filt in venues_filter:
+        filt = filt.lower()
+        print("testing if {} matches {}".format(filt, venue))
+        if filt in venue:
+            print("yes it does!")
+            return True
+    return False
 
 
 # Builds a string out of the lunch offers.
@@ -110,21 +123,17 @@ def format_lunch_offers(lunch_offers, venues_filter=None):
 
     message = "Lunch offers for you today!\n"
 
-    all_offers = lunch_offers.items()
-    for (index, (venue, offers)) in enumerate(all_offers):
-        if venues_filter is not None:
-            print("Applying filter:", venues_filter, venue)
-            venue_pat = venue.lower()
-            keep_venue = False
-            for filt in venues_filter:
-                if filt in venue_pat:
-                    keep_venue = True
-            if not keep_venue:
-                continue
-
-        if index > 5:
+    count_added = 0
+    for venue, offers in lunch_offers.items():
+        if not should_show_venue(venue, venues_filter):
+            continue
+        count_added += 1
+        if count_added > 5:
             break
-        message += "*{}*: {}\n".format(venue, offers[0])
+        if len(offers) == 0:
+            message += "*{}: no offers".format(venue)
+        else:
+            message += "*{}*: {}\n".format(venue, offers[0])
     return message
 
 # Slack Slash Command handler
@@ -134,7 +143,7 @@ def slack(event, context):
     if 'body' in event:
         query = parse_qs(event['body'])
 
-    venue_filter = []
+    venue_filter = None
     city = 'tartu'
 
     if 'queryStringParameters' in event:
@@ -142,7 +151,7 @@ def slack(event, context):
         if 'venues' in query:
             venue_filter = query['venues'][0:512].split(',')
         if 'city' in query and query['city'] in ['tallinn', 'tartu']:
-            city = query['city']
+            city = query['city'][0:7]
 
     offers = get_lunch_offers(city)
     message = format_lunch_offers(offers, venue_filter)
