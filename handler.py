@@ -153,6 +153,9 @@ def slack(event, context):
         if 'city' in query and query['city'] in ['tallinn', 'tartu']:
             city = query['city'][0:7]
 
+    if 'text' in query:
+        venue_filter = query['text'][0:512].split(',')
+
     offers = get_lunch_offers(city)
     message = format_lunch_offers(offers, venue_filter)
 
