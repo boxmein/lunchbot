@@ -109,9 +109,7 @@ def should_show_venue(venue, venues_filter):
     venue = venue.lower()
     for filt in venues_filter:
         filt = filt.lower().strip()
-        print("testing if {} matches {}".format(filt, venue))
         if filt in venue:
-            print("yes it does!")
             return True
     return False
 
