@@ -108,7 +108,7 @@ def should_show_venue(venue, venues_filter):
         return True
     venue = venue.lower()
     for filt in venues_filter:
-        filt = filt.lower()
+        filt = filt.lower().strip()
         print("testing if {} matches {}".format(filt, venue))
         if filt in venue:
             print("yes it does!")
@@ -155,6 +155,7 @@ def slack(event, context):
 
     if 'text' in query:
         venue_filter = query['text'][0:512].split(',')
+        print("venue_filter overridden from body: ", venue_filter)
 
     offers = get_lunch_offers(city)
     message = format_lunch_offers(offers, venue_filter)
