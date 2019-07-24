@@ -136,23 +136,24 @@ def format_lunch_offers(lunch_offers, venues_filter=None):
 
 # Slack Slash Command handler
 def slack(event, context):
-    query = None
+    postbody = None
 
     if 'body' in event:
-        query = parse_qs(event['body'])
+        postbody = parse_qs(event['body'])
 
     venue_filter = None
     city = 'tartu'
 
     if 'queryStringParameters' in event:
         query = event['queryStringParameters']
-        if 'venues' in query:
-            venue_filter = query['venues'][0:512].split(',')
-        if 'city' in query and query['city'] in ['tallinn', 'tartu']:
-            city = query['city'][0:7]
+        if query is not None:
+            if 'venues' in query:
+                venue_filter = query['venues'][0:512].split(',')
+            if 'city' in query and query['city'] in ['tallinn', 'tartu']:
+                city = query['city'][0:7]
 
-    if 'text' in query:
-        venue_filter = query['text'][0:512].split(',')
+    if 'text' in postbody and len(postbody['text']) == 1:
+        venue_filter = postbody['text'][0][0:512].split(',')
         print("venue_filter overridden from body: ", venue_filter)
 
     offers = get_lunch_offers(city)
