@@ -131,7 +131,7 @@ def format_lunch_offers(lunch_offers, venues_filter=None):
         if len(offers) == 0:
             message += "*{}: no offers".format(venue)
         else:
-            message += "*{}*: {}\n".format(venue, offers[0])
+            message += "*{}*: {}\n".format(venue, '💥' + '💥'.join(offers[0:8]))
     return message
 
 # Slack Slash Command handler
@@ -140,6 +140,9 @@ def slack(event, context):
 
     if 'body' in event:
         postbody = parse_qs(event['body'])
+
+    if postbody is None:
+        postbody = ''
 
     venue_filter = None
     city = 'tartu'
